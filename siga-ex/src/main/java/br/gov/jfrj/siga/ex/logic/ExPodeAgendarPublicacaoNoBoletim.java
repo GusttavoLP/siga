@@ -59,11 +59,7 @@ public class ExPodeAgendarPublicacaoNoBoletim extends CompositeExpressionSupport
 						return JLogic.explain("antes das 17hs", result);
 					}
 
-				},
-				
-				Not.of(new ExEstaAgendadaPublicacaoNoDiario(doc)),
-				
-				Not.of(new  ExEstaSolicitadaPublicacaoNoDiario(doc)),						
+				},									
 
 				new ExPodeExibirBotaoDeAgendarPublicacaoNoBoletim(mob, titular, lotaTitular));
 
