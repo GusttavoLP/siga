@@ -145,6 +145,9 @@ public interface ExService extends Remote {
 
 	@WebMethod
 	public Boolean isModeloIncluso(String codigoDocumentoVia, Long idModelo, Date depoisDaData) throws Exception;
+	
+	@WebMethod
+	public Boolean isViaGeral(String codigoDocumentoVia) throws Exception;
 
 	@WebMethod
 	public void incluirCopiaDeDocumento(String siglaCadastrante, String siglaMobilPai, String siglaMobilFilho)

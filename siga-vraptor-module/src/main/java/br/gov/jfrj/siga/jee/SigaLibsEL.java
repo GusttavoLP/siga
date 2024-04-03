@@ -484,6 +484,12 @@ public class SigaLibsEL {
 			mesaVersao = "2";
 		return mesaVersao;
 	}
+	
+	public static boolean isProd() {
+		if ("prod".equals(Prop.get("/siga.ambiente")))
+			return true;
+		return false;
+	}
 
 	
 }
