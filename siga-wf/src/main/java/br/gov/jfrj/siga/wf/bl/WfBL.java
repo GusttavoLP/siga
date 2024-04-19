@@ -359,6 +359,12 @@ public class WfBL extends CpBL {
 		if (service.podeTransferir(principal, siglaTitular, true))
 			service.transferir(principal, destino, siglaTitular, true);
 	}
+	
+	public static boolean isViaGeral(String principal) throws Exception
+	{
+		ExService service = Service.getExService();
+		return service.isViaGeral(principal);
+	}
 
 	public static void assertPodeTransferirDocumentosVinculados(WfTarefa ti, String siglaTitular) throws Exception {
 		String principal = ti.getInstanciaDeProcedimento().getPrincipal();

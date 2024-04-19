@@ -147,6 +147,8 @@ public class WfAppController extends WfController {
 			SelecaoGenerica documentoRefSel) throws Exception {
 		if (documentoRefSel != null && documentoRefSel.getSigla() != null) {
 			principal = documentoRefSel.getSigla();
+			if (WfBL.isViaGeral(principal)) 
+				throw new RuntimeException("Não é possivel iniciar um procedimento a partir da via geral do documento. Escolha outra via.");
 		}
 		if (pdId == null)
 			throw new RuntimeException("Identificador da definição de procedimento não encontrado");

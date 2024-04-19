@@ -932,6 +932,21 @@ public class ExServiceImpl implements ExService {
 		}
 	}
 	
+	public Boolean isViaGeral(String codigoDocumento) throws Exception {
+		try (ExSoapContext ctx = new ExSoapContext(false)) {
+			try {
+				ExMobil mob = buscarMobil(codigoDocumento);
+				if (mob.isGeral())
+					return true;
+				return false;
+			} catch (Exception ex) {
+				Exception e = ctx.exceptionWithMessageFileAndLine(ex);
+				ctx.rollback(e);
+				throw e;			}
+		}
+	}
+	
+	
 	public Boolean isAuxiliarIncluso(String codigoDocumento, Date depoisDaData) throws Exception {
 		try (ExSoapContext ctx = new ExSoapContext(false)) {
 			try {
