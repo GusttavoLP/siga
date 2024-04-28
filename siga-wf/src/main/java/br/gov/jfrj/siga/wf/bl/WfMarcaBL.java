@@ -2,6 +2,7 @@ package br.gov.jfrj.siga.wf.bl;
 
 import java.util.Date;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
@@ -16,14 +17,17 @@ import br.gov.jfrj.siga.wf.model.WfMarca;
 import br.gov.jfrj.siga.wf.model.WfProcedimento;
 
 public class WfMarcaBL {
+	private WfMarcaBL() {
+
+	} 
 
 	public static void atualizarMarcas(WfProcedimento pi) {
-		SortedSet<WfMarca> setA = new TreeSet<WfMarca>();
+		SortedSet<WfMarca> setA = new TreeSet<>();
 		setA.addAll(pi.getMarcas());
 		SortedSet<WfMarca> setB = calcularMarcadores(pi);
-		Set<WfMarca> marcasAIncluir = new TreeSet<WfMarca>();
-		Set<WfMarca> marcasAExcluir = new TreeSet<WfMarca>();
-		Set<Par<WfMarca, WfMarca>> atualizar = new TreeSet<Par<WfMarca, WfMarca>>();
+		Set<WfMarca> marcasAIncluir = new TreeSet<>();
+		Set<WfMarca> marcasAExcluir = new TreeSet<>();
+		Set<Par<WfMarca, WfMarca>> atualizar = new TreeSet<>();
 		encaixar(setA, setB, marcasAIncluir, marcasAExcluir, atualizar);
 
 		for (WfMarca i : marcasAIncluir) {
@@ -47,13 +51,21 @@ public class WfMarcaBL {
 	}
 
 	private static SortedSet<WfMarca> calcularMarcadores(WfProcedimento pi) {
-		SortedSet<WfMarca> set = new TreeSet<WfMarca>();
+		SortedSet<WfMarca> set = new TreeSet<>();
 
 		if (pi.isPausado())
 			acrescentarMarca(pi, set, CpMarcadorEnum.EM_ANDAMENTO.getId(), pi.getEventoData(), null, pi.getEventoPessoa(),
 					pi.getEventoLotacao());
 
 		return set;
+	}
+
+	private static boolean precisaIncluir(WfMarca a, WfMarca b) {
+		return (a == null) || (b != null && a.compareTo(b) > 0);
+	}
+
+	private static boolean precisaExcluir(WfMarca a, WfMarca b) {
+		return b == null || b.compareTo(a) > 0;
 	}
 
 	private static void encaixar(SortedSet<WfMarca> setA, SortedSet<WfMarca> setB, Set<WfMarca> incluir,
@@ -63,43 +75,31 @@ public class WfMarcaBL {
 
 		WfMarca a = null;
 		WfMarca b = null;
-
-		if (ia.hasNext())
+		
+		try {
 			a = ia.next();
-		if (ib.hasNext())
 			b = ib.next();
-		while (a != null || b != null) {
-			if ((a == null) || (b != null && a.compareTo(b) > 0)) {
-				// Existe em setB, mas nao existe em setA
-				incluir.add(b);
-				if (ib.hasNext())
+			while (a != null || b != null) {
+				if (precisaIncluir(a, b)) {
+					// Existe em setB, mas nao existe em setA
+					incluir.add(b);
 					b = ib.next();
-				else
-					b = null;
 
-			} else if (b == null || (a != null && b.compareTo(a) > 0)) {
-				// Existe em setA, mas nao existe em setB
-				excluir.add(a);
-				if (ia.hasNext())
+				} else if (precisaExcluir(a, b)) {
+					// Existe em setA, mas nao existe em setB
+					excluir.add(a);
 					a = ia.next();
-				else
-					a = null;
-			} else {
+				} else {
 
-				// O registro existe nos dois
-				atualizar.add(new Par<WfMarca, WfMarca>(a, b));
-				if (ib.hasNext())
+					// O registro existe nos dois
+					atualizar.add(new Par<>(a, b));
 					b = ib.next();
-				else
-					b = null;
-				if (ia.hasNext())
 					a = ia.next();
-				else
-					a = null;
+				}
 			}
+		} catch (NoSuchElementException e) {
+			// fim da operação
 		}
-		ib = null;
-		ia = null;
 	}
 
 	private static void acrescentarMarca(WfProcedimento pi, SortedSet<WfMarca> set, Long idMarcador, Date dtIni,
@@ -109,7 +109,7 @@ public class WfMarcaBL {
 		// porque este metodo soh eh chamado por atualizarMarcas(), que ja se
 		// certifica de chamar este metodo apenas para a solicitacao inicial
 		mar.setProcedimento(pi);
-		mar.setCpMarcador((CpMarcador) CpMarcador.AR.findById(idMarcador));
+		mar.setCpMarcador(CpMarcador.AR.findById(idMarcador));
 		if (pess != null)
 			mar.setDpPessoaIni(pess.getPessoaInicial());
 		if (lota != null)
