@@ -19,12 +19,12 @@ public class WfConfiguracaoCacheComparatorTest {
     }
 
     @Test
-    public void IgualASiMesmo() {
+    public void igualASiMesmo() {
         Assert.assertEquals(0, comparator.compare(c1, c1));
     }
 
     @Test
-    public void ObjetosComMesmosValores() {
+    public void objetosComMesmosValores() {
         Assert.assertEquals(0, comparator.compare(c1, c2));
     }
 
