@@ -80,7 +80,7 @@ public class WfBL extends CpBL {
 	public static final String WF_LOTA_CADASTRANTE = "wf_lota_cadastrante";
 	public static final String WF_TITULAR = "wf_titular";
 	public static final String WF_LOTA_TITULAR = "wf_lota_titular";
-	private static WfTarefaComparator tic = new WfTarefaComparator();
+	public final Boolean podePegarTarefa = false;
 
 	/**
 	 * Cria uma instância de processo. Ao final da criação, define as seguintes
@@ -105,12 +105,38 @@ public class WfBL extends CpBL {
 	 * @return
 	 * @throws Exception
 	 */
+	
+	private WfDefinicaoDeProcedimento criaDefinicaoProcedimento(long pdId, WfDefinicaoDeProcedimento classe, boolean 	logicoProcedimento)
+	{
+		return WfDao.getInstance().consultar(pdId, classe, logicoProcedimento);
+	}
+	
+	private WfProcedimento setaPI(WfProcedimento pi, WfTipoDePrincipal tipoDePrincipal, String principal, DpPessoa 	titular, DpLotacao lotaTitular, CpIdentidade identidade)
+	{
+		pi.setTipoDePrincipal(tipoDePrincipal);
+		pi.setPrincipal(principal);
+		pi.setTitular(titular);
+		pi.setLotaTitular(lotaTitular);
+		pi.setHisIdcIni(identidade);
+		pi.setOrgaoUsuario(titular.getOrgaoUsuario());
+		pi.setHisDtIni(dao().consultarDataEHoraDoServidor());
+		return pi;
+	}
+	
+	private void impedirInicializacaoSemPrincipal(WfTipoDePrincipal tipoDePrincipal, String principal, 	WfDefinicaoDeProcedimento pd, WfProcedimento pi)
+	{
+		if (principal == null && tipoDePrincipal != WfTipoDePrincipal.NENHUM
+			&& (pd.getTipoDeVinculoComPrincipal() == WfTipoDeVinculoComPrincipal.OBRIGATORIO
+			|| pd.getTipoDeVinculoComPrincipal() == 			WfTipoDeVinculoComPrincipal.OBRIGATORIO_E_EXCLUSIVO))
+			throwErroDeInicializacao(pi, null, "não é permitido instanciar este procedimento sem informar o 			principal");
+	}
+	
 	public WfProcedimento criarProcedimento(long pdId, Integer idxPrimeiraTarefa, DpPessoa titular,
 			DpLotacao lotaTitular, CpIdentidade identidade, WfTipoDePrincipal tipoDePrincipal, String principal,
 			List<String> keys, List<Object> values, boolean fCreateStartTask) throws Exception {
 
 		// Create the process definition,
-		WfDefinicaoDeProcedimento pd = WfDao.getInstance().consultar(pdId, WfDefinicaoDeProcedimento.class, false);
+		WfDefinicaoDeProcedimento pd = criaDefinicaoProcedimento(pdId, WfDefinicaoDeProcedimento.class, false);
 
 		// Create the process instance without responsible support
 		HashMap<String, Object> variable = new HashMap<>();
@@ -133,31 +159,20 @@ public class WfBL extends CpBL {
 
 		WfProcedimento pi = new WfProcedimento(pd, variable);
 
-		// Impedir a inicialização de procedimento sem informar o principal, quando este
-		// é obrigatório
-		if (principal == null && tipoDePrincipal != WfTipoDePrincipal.NENHUM
-				&& (pd.getTipoDeVinculoComPrincipal() == WfTipoDeVinculoComPrincipal.OBRIGATORIO
-						|| pd.getTipoDeVinculoComPrincipal() == WfTipoDeVinculoComPrincipal.OBRIGATORIO_E_EXCLUSIVO))
-			throwErroDeInicializacao(pi, null, "não é permitido instanciar este procedimento sem informar o principal");
+		impedirInicializacaoSemPrincipal(tipoDePrincipal, principal, pd, pi);
 
 		// Impedir que o mesmo documento seja referenciado por 2 procedimentos
 		// diferentes ativos, quando o vínculo é exclusivo
 		if (principal != null && (pd.getTipoDeVinculoComPrincipal() == WfTipoDeVinculoComPrincipal.OPCIONAL_E_EXCLUSIVO
 				|| pd.getTipoDeVinculoComPrincipal() == WfTipoDeVinculoComPrincipal.OBRIGATORIO_E_EXCLUSIVO)) {
 			List<WfProcedimento> l = dao().consultarProcedimentosAtivosPorPrincipal(principal);
-			if (l.size() > 0)
+			if (!(l.isEmpty()))
 				throwErroDeInicializacao(pi, null,
 						"não é permitido instanciar este procedimento com o principal " + principal
 								+ " que já está sendo orquestrado por pelo procedimento ativo " + l.get(0).getSigla());
 		}
 
-		pi.setTipoDePrincipal(tipoDePrincipal);
-		pi.setPrincipal(principal);
-		pi.setTitular(titular);
-		pi.setLotaTitular(lotaTitular);
-		pi.setHisIdcIni(identidade);
-		pi.setOrgaoUsuario(titular.getOrgaoUsuario());
-		pi.setHisDtIni(dao().consultarDataEHoraDoServidor());
+		pi = setaPI(pi, tipoDePrincipal, principal, titular, lotaTitular, identidade);
 
 		for (WfDefinicaoDeTarefa td : pi.getDefinicaoDeProcedimento().getDefinicaoDeTarefa()) {
 			if (td.getTipoDeTarefa() == null)
@@ -166,7 +181,7 @@ public class WfBL extends CpBL {
 				
 				//TODO Se o tipo de tarefa for JUNTAR, não pedir o tipo de responsável pro usuário
 				//TODO Refatoração, extrair método se precisar
-				if (td.getTipoDeTarefa().getDescr() == "Juntar") {
+				if (td.getTipoDeTarefa().getDescr().equals("Juntar")) {
 					WfTipoDeResponsavel wfTipoDeResponsavel = WfTipoDeResponsavel.PRINCIPAL_LOTA_CADASTRANTE;
 					td.setTipoDeResponsavel(wfTipoDeResponsavel);
 				}
@@ -178,11 +193,10 @@ public class WfBL extends CpBL {
 				if (r == null)
 					throwErroDeInicializacao(pi, td, "não foi possível calcular o responsável pela tarefa");
 			}
-			if (td.getTipoDeTarefa() == WfTipoDeTarefa.INCLUIR_DOCUMENTO
+			if ((td.getTipoDeTarefa() == WfTipoDeTarefa.INCLUIR_DOCUMENTO
 					|| td.getTipoDeTarefa() == WfTipoDeTarefa.CRIAR_DOCUMENTO
-					|| td.getTipoDeTarefa() == WfTipoDeTarefa.AUTUAR_DOCUMENTO) {
-				if (td.getRefId() == null)
-					throwErroDeInicializacao(pi, td, "não foi definido o modelo de documento na tarefa");
+					|| td.getTipoDeTarefa() == WfTipoDeTarefa.AUTUAR_DOCUMENTO) && (td.getRefId() == null)) {
+				throwErroDeInicializacao(pi, td, "não foi definido o modelo de documento na tarefa");
 			}
 
 			if (td.getTipoDeTarefa() == WfTipoDeTarefa.INCLUIR_DOCUMENTO
@@ -219,6 +233,8 @@ public class WfBL extends CpBL {
 
 		return pi;
 	}
+	
+	 
 
 	private String throwErroDeInicializacao(WfProcedimento pi, WfDefinicaoDeTarefa td, String mensagem) {
 		throw new AplicacaoException("Erro na inicialização de um procedimento de workflow do diagrama '"
@@ -234,8 +250,8 @@ public class WfBL extends CpBL {
 
 	public void salvar(WfProcedimento pi, WfDefinicaoDeTarefa td, Map<String, Object> param, DpPessoa titular,
 			DpLotacao lotaTitular, CpIdentidade identidade) throws Exception {
-		if (td.getVariable() != null && td.getVariable().size() > 0) {
-			for (WfDefinicaoDeVariavel v : (List<WfDefinicaoDeVariavel>) td.getVariable()) {
+		if (td.getVariable() != null && !(td.getVariable().isEmpty()) ) {
+			for (WfDefinicaoDeVariavel v : td.getVariable()) {
 				if (v.getEditingKind() == VariableEditingKind.READ_ONLY)
 					continue;
 				Object value = param != null ? param.get(v.getIdentifier()) : null;
@@ -261,17 +277,14 @@ public class WfBL extends CpBL {
 			// Associa cada variavel com seu valore especifico
 			for (WfDefinicaoDeVariavel variable : td.getVariable()) {
 				String identificador = variable.getIdentifier();
-				if (!paramsAsStrings.containsKey(identificador))
-					continue;
-				if (variable.getEditingKind() != VariableEditingKind.READ_WRITE
-						&& variable.getEditingKind() != VariableEditingKind.READ_WRITE_REQUIRED)
+				if ((!paramsAsStrings.containsKey(identificador)) || (variable.getEditingKind() != 				VariableEditingKind.READ_WRITE && variable.getEditingKind() != 				VariableEditingKind.READ_WRITE_REQUIRED))
 					continue;
 		
 				String campo = paramsAsStrings.get(identificador);
 				Object value = campo;
 		
 				if (variable.getTipo() == WfTipoDeVariavel.DATE)
-					value = SigaCalendar.converteStringEmData(campo.toString());
+					value = SigaCalendar.converteStringEmData(campo);
 				else if (variable.getTipo() == WfTipoDeVariavel.BOOLEAN)
 					value = converterParaBoolean(campo);
 				else if (variable.getTipo() == WfTipoDeVariavel.DOUBLE)
@@ -327,8 +340,7 @@ public class WfBL extends CpBL {
 	 */
 	public SortedSet<WfTarefa> getTaskList(DpPessoa cadastrante, DpPessoa titular, DpLotacao lotaTitular)
 			throws AplicacaoException {
-		SortedSet<WfTarefa> tasks = WfDao.getInstance().consultarTarefasDeLotacao(lotaTitular);
-		return tasks;
+		return WfDao.getInstance().consultarTarefasDeLotacao(lotaTitular);
 	}
 
 	public List<WfProcedimento> getTaskList(String siglaDoc) {
@@ -407,11 +419,6 @@ public class WfBL extends CpBL {
 				+ "' não é permitida pois só são aceitas lotações ascendentes seguindo a linha do organograma ou descendentes diretas.");
 	}
 
-	public static Boolean podePegarTarefa(DpPessoa cadastrante, DpPessoa titular, DpLotacao lotaCadastrante,
-			DpLotacao lotaTitular, WfTarefa ti) {
-		return false;
-	}
-
 	private WfDao dao() {
 		return (WfDao) getComp().getConfiguracaoBL().dao();
 	}
@@ -450,7 +457,7 @@ public class WfBL extends CpBL {
 		dao().gravar(mov);
 		WfProcedimento pi = mov.getProcedimento();
 		if (pi.getMovimentacoes() == null)
-			pi.setMovimentacoes(new TreeSet<WfMov>());
+			pi.setMovimentacoes(new TreeSet<>());
 		pi.getMovimentacoes().add(mov);
 	}
 
@@ -490,7 +497,7 @@ public class WfBL extends CpBL {
 		// Não registraremos a transição quando a movimentação anterior for um
 		// redirecionamento com a mesma origem e destino
 		WfMov last = pi.getUltimaMovimentacao();
-		if (last != null && last instanceof WfMovRedirecionamento) {
+		if (last instanceof WfMovRedirecionamento) {
 			WfMovRedirecionamento lastr = (WfMovRedirecionamento) last;
 			if (lastr.getDefinicaoDeTarefaDe() != null && lastr.getDefinicaoDeTarefaPara() != null
 					&& lastr.getDefinicaoDeTarefaDe().equals(mov.getDefinicaoDeTarefaDe())
