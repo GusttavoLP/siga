@@ -3,6 +3,7 @@ package br.gov.jfrj.siga.wf.model;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -30,7 +31,6 @@ import br.gov.jfrj.siga.dp.DpPessoa;
 import br.gov.jfrj.siga.model.ActiveRecord;
 import br.gov.jfrj.siga.model.Assemelhavel;
 import br.gov.jfrj.siga.sinc.lib.Desconsiderar;
-import br.gov.jfrj.siga.sinc.lib.NaoRecursivo;
 import br.gov.jfrj.siga.sinc.lib.Sincronizavel;
 import br.gov.jfrj.siga.sinc.lib.SincronizavelSuporte;
 import br.gov.jfrj.siga.wf.model.enm.WfTipoDeResponsavel;
@@ -43,7 +43,7 @@ import br.gov.jfrj.siga.wf.util.NaoSerializar;
 public class WfDefinicaoDeTarefa extends HistoricoAuditavelSuporte
 		implements TaskDefinition<WfTipoDeTarefa, WfTipoDeResponsavel, WfDefinicaoDeVariavel, WfDefinicaoDeDesvio>,
 		Sincronizavel, Comparable<Sincronizavel> {
-	public static ActiveRecord<WfDefinicaoDeTarefa> AR = new ActiveRecord<>(WfDefinicaoDeTarefa.class);
+	public static final ActiveRecord<WfDefinicaoDeTarefa> AR = new ActiveRecord<>(WfDefinicaoDeTarefa.class);
 
 	@Id
 	@GeneratedValue
@@ -144,7 +144,7 @@ public class WfDefinicaoDeTarefa extends HistoricoAuditavelSuporte
 
 	@Column(name = "DEFT_TX_PARAM2", length = 256)
 	private java.lang.String param2;
-	
+
 	@Column(name = "DEFT_TX_PARAM3", length = 4)
 	private java.lang.String param3;
 
@@ -157,7 +157,7 @@ public class WfDefinicaoDeTarefa extends HistoricoAuditavelSuporte
 	//
 	@Column(name = "HIS_ATIVO")
 	private Integer hisAtivo;
-	
+
 	@Override
 	public Integer getHisAtivo() {
 		this.hisAtivo = super.getHisAtivo();
@@ -367,6 +367,7 @@ public class WfDefinicaoDeTarefa extends HistoricoAuditavelSuporte
 
 	@Override
 	public void setLoteDeImportacao(String loteDeImportacao) {
+		// método vazio pois a implementação dele não se fez mais necessária
 	}
 
 	@Override
@@ -511,12 +512,17 @@ public class WfDefinicaoDeTarefa extends HistoricoAuditavelSuporte
 		case LOTACAO:
 			if (lotacao != null)
 				return lotacao.getSigla();
+			break;
 		case PESSOA:
 			if (pessoa != null)
 				return pessoa.getSobrenomeEIniciais();
+			break;
 		case RESPONSAVEL:
 			if (definicaoDeResponsavel != null)
 				return definicaoDeResponsavel.getNome();
+			break;
+		default:
+			break;
 		}
 
 		String s = tipoDeResponsavel.getDescr();
@@ -532,19 +538,24 @@ public class WfDefinicaoDeTarefa extends HistoricoAuditavelSuporte
 		case LOTACAO:
 			if (lotacao != null)
 				return lotacao.getNomeLotacao();
+			break;
 		case PESSOA:
 			if (pessoa != null)
 				return pessoa.getNomePessoa();
+			break;
 		case RESPONSAVEL:
 			if (definicaoDeResponsavel != null)
 				return definicaoDeResponsavel.getNome();
+			break;
+		default:
+			break;
 		}
 
 		String s = tipoDeResponsavel.getDescr();
 		s = s.replace("Principal: ", "").replace("Lotação ", "Lota. ");
 		return s;
 	}
-	
+
 	public java.lang.String getParam() {
 		return param;
 	}
@@ -560,7 +571,6 @@ public class WfDefinicaoDeTarefa extends HistoricoAuditavelSuporte
 	public void setParam2(java.lang.String param2) {
 		this.param2 = param2;
 	}
-	
 
 	public String getAncora() {
 		if (getDefinicaoDeProcedimento().getNome() != null && getNome() != null)
@@ -577,7 +587,7 @@ public class WfDefinicaoDeTarefa extends HistoricoAuditavelSuporte
 	}
 
 	public List<String> getTags() {
-		ArrayList<String> tags = new ArrayList<String>();
+		ArrayList<String> tags = new ArrayList<>();
 		if (getDefinicaoDeProcedimento() != null) {
 			tags.add("@" + Texto.slugify(getDefinicaoDeProcedimento().getSiglaCompacta(), true, false));
 			tags.add("@" + Texto.slugify(getDefinicaoDeProcedimento().getNome(), true, false));
@@ -587,20 +597,40 @@ public class WfDefinicaoDeTarefa extends HistoricoAuditavelSuporte
 
 		return tags;
 	}
-	
-	public java.lang.String getParam3(){
+
+	public java.lang.String getParam3() {
 		return param3;
 	}
-	
-	public void setParam3(java.lang.String param3){
+
+	public void setParam3(java.lang.String param3) {
 		this.param3 = param3;
 	}
-	
+
 	public java.lang.String getEmail() {
 		return email;
 	}
 
 	public void setEmail(java.lang.String email) {
 		this.email = email;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result + Objects.hash(id, nome);
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		WfDefinicaoDeTarefa other = (WfDefinicaoDeTarefa) obj;
+		return Objects.equals(id, other.id) && Objects.equals(nome, other.nome);
 	}
 }
