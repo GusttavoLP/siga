@@ -51,12 +51,16 @@ public class WfCompetenciaBL extends CpCompetenciaBL {
 	 */
 	public boolean podeInstanciarProcedimentoPorConfiguracao(DpPessoa titular, DpLotacao lotaTitular,
 			final WfDefinicaoDeProcedimento definicaoDeProcedimento) {
+		System.out.println(podePorConfiguracao(titular, lotaTitular, definicaoDeProcedimento,
+				WfTipoDeConfiguracao.INSTANCIAR_PROCEDIMENTO));
 		return podePorConfiguracao(titular, lotaTitular, definicaoDeProcedimento,
 				WfTipoDeConfiguracao.INSTANCIAR_PROCEDIMENTO);
 	}
 
 	public boolean podeEditarProcedimentoPorConfiguracao(DpPessoa titular, DpLotacao lotaTitular,
 			WfDefinicaoDeProcedimento pd) {
+		System.out.println(podePorConfiguracao(titular, lotaTitular, pd,
+				WfTipoDeConfiguracao.EDITAR_DEFINICAO_DE_PROCEDIMENTO));
 		return podePorConfiguracao(titular, lotaTitular, pd,
 				WfTipoDeConfiguracao.EDITAR_DEFINICAO_DE_PROCEDIMENTO);
 	}
