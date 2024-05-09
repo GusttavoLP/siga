@@ -106,7 +106,7 @@ public class WfBL extends CpBL {
 	 * @throws Exception
 	 */
 	
-	private WfDefinicaoDeProcedimento criaDefinicaoProcedimento(long pdId, WfDefinicaoDeProcedimento classe, boolean 	logicoProcedimento)
+	private WfDefinicaoDeProcedimento criaDefinicaoProcedimento(long pdId, Class<WfDefinicaoDeProcedimento> classe, 	boolean logicoProcedimento)
 	{
 		return WfDao.getInstance().consultar(pdId, classe, logicoProcedimento);
 	}
@@ -163,13 +163,11 @@ public class WfBL extends CpBL {
 
 		// Impedir que o mesmo documento seja referenciado por 2 procedimentos
 		// diferentes ativos, quando o vínculo é exclusivo
-		if (principal != null && (pd.getTipoDeVinculoComPrincipal() == WfTipoDeVinculoComPrincipal.OPCIONAL_E_EXCLUSIVO
-				|| pd.getTipoDeVinculoComPrincipal() == WfTipoDeVinculoComPrincipal.OBRIGATORIO_E_EXCLUSIVO)) {
+		if (principal != null && (pd.getTipoDeVinculoComPrincipal() == 		WfTipoDeVinculoComPrincipal.OPCIONAL_E_EXCLUSIVO || pd.getTipoDeVinculoComPrincipal() == 		WfTipoDeVinculoComPrincipal.OBRIGATORIO_E_EXCLUSIVO)) {
 			List<WfProcedimento> l = dao().consultarProcedimentosAtivosPorPrincipal(principal);
 			if (!(l.isEmpty()))
-				throwErroDeInicializacao(pi, null,
-						"não é permitido instanciar este procedimento com o principal " + principal
-								+ " que já está sendo orquestrado por pelo procedimento ativo " + l.get(0).getSigla());
+				throwErroDeInicializacao(pi, null, "não é permitido instanciar este procedimento com o principal "
+				+ principal	+ " que já está sendo orquestrado por pelo procedimento ativo " + l.get(0).getSigla());
 		}
 
 		pi = setaPI(pi, tipoDePrincipal, principal, titular, lotaTitular, identidade);
